@@ -8,16 +8,21 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Categorical
 from torch.autograd import Variable
-
+import time as t
 env = gym.make('MountainCar-v0')
-#MountainCar-v0
-#CartPole-v1
-env.seed(1)
-torch.manual_seed(1)
+
+# env.seed(1)
+# torch.manual_seed(1)
 
 # Hyperparameters
-learning_rate = 0.01
+learning_rate = 0.005
 gamma = 0.99
+
+
+def saveModel(model, fileName):
+    fileName = str(fileName)
+    path = 'mountainNets/' + fileName + '.pth'
+    torch.save(model.state_dict(), path)
 
 class Policy(nn.Module):
     def __init__(self):
@@ -26,8 +31,9 @@ class Policy(nn.Module):
         action_space = env.action_space.n
         num_hidden = 128
 
-        self.l1 = nn.Linear(state_space, num_hidden, bias=False)
-        self.l2 = nn.Linear(num_hidden, action_space, bias=False)
+        self.l1 = nn.Linear(state_space, 64, bias=False)
+        self.l2 = nn.Linear(64, 128, bias=False)
+        self.l3 = nn.Linear(128, action_space, bias=False)
 
         # Overall reward and loss history
         self.reward_history = []
@@ -42,15 +48,18 @@ class Policy(nn.Module):
     def forward(self, x):
         model = torch.nn.Sequential(
             self.l1,
-            nn.Dropout(p=0.8),
+            nn.Dropout(p=0.4),
             nn.ReLU(),
             self.l2,
+            nn.Dropout(p=0.2),
+            nn.ReLU(),
+            self.l3,
             nn.Softmax(dim=-1)
         )
         return model(x)
 
 
-def predict(state):
+def predict(policy, state):
     # Select an action (0 or 1) by running policy model
     # and choosing based on the probabilities in state
     state = torch.from_numpy(state).type(torch.FloatTensor)
@@ -73,22 +82,19 @@ def update_policy():
 
     # Discount future rewards back to the present using gamma
     for r in policy.episode_rewards[::-1]:
-        R = r#R = r + gamma * R
+        R = r + gamma * R
         rewards.insert(0, R)
 
     # Scale rewards
     rewards = torch.FloatTensor(rewards)
-    #print(rewards)
     # print(rewards)
-    # rewards = (rewards - rewards.mean()) / \
-    #     (rewards.std() + np.finfo(np.float32).eps)
+    rewards = (rewards - rewards.mean()) / (rewards.std() + np.finfo(np.float32).eps)
 
-    # print(rewards)
     # Calculate loss
-    loss = Variable(torch.sum(rewards).mul(-1), requires_grad=True)
-    #print(loss)
+    loss = (torch.sum(torch.mul(policy.episode_actions, rewards).mul(-1), -1))
+    # print(loss)
 
-    # Update network weights
+        # Update network weights
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -98,49 +104,67 @@ def update_policy():
     policy.reward_history.append(np.sum(policy.episode_rewards))
     policy.reset()
 
+    return loss.item()
+
 
 def train(episodes):
     scores = []
+    max_pos = []
+    losses = []
     for episode in range(episodes):
+
+        #save every 250 episodes
+        if episode % 250 == 0:
+            saveModel(policy, episode)
+
         # Reset environment and record the starting state
         state = env.reset()
-
-        for time in range(2000):
-            if episode % 200 < 1:
+        maxp = -.5
+        for time in range(2500):
+            if episode % 200 == 0:
                 env.render()
-            action = predict(state)
+            action = predict(policy, state)
 
-
-            # Uncomment to render the visual state in a window
-            # env.render()
 
             # Step through environment using chosen action
             state, reward, done, _ = env.step(action.item())
 
+            if state[0] > maxp:
+                maxp = state[0]
 
             # Save reward
-            policy.episode_rewards.append(reward)
-            if (state[0] >= env.goal_position): # and state[1] >= env.goal_velocity:
-                # print(bool(state[0] >= env.goal_position and state[1] >= env.goal_velocity))
-                # print(state)
+            if state[0] > .5:
+                policy.episode_rewards.append(100)
                 break
 
-        update_policy()
+            else:
+                # -((.5-abs(state[0] + .5))) + abs(state[1])
+                policy.episode_rewards.append(reward)
+                
+
+        losses.append(update_policy())
 
         # Calculate score to determine when the environment has been solved
         scores.append(time)
+        max_pos.append(maxp)
         mean_score = np.mean(scores[-100:])
+        mean_max = np.mean(max_pos[-100:])
+        mean_loss = np.mean(losses[-100:])
 
         if episode % 50 == 0:
-            print('Episode {}\tAverage length (last 100 episodes): {:.2f}'.format(
-                episode, mean_score))
+            print('Episode {} Average time (last 100 episodes): {:.2f} avg loss: {:.8f} avg max-pos: {:.2f}'.format(
+                episode, mean_score, mean_loss, mean_max))
 
-        if mean_score < abs(env.spec.reward_threshold):
+        if mean_score < 200:
+            saveModel(policy, 'winning')
             print("Solved after {} episodes! Running average is now {}. Last episode ran to {} time steps."
                   .format(episode, mean_score, time))
             break
 
 
-policy = Policy()
-optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
-train(episodes=1000)
+
+if __name__ == "__main__":
+    policy = Policy()
+    optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
+    train(episodes=20000)
+

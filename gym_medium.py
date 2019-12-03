@@ -80,9 +80,11 @@ def update_policy():
     rewards = (rewards - rewards.mean()) / \
         (rewards.std() + np.finfo(np.float32).eps)
 
-    # print(rewards)
+
+    print(rewards)
     # Calculate loss
     loss = (torch.sum(torch.mul(policy.episode_actions, rewards).mul(-1), -1))
+
 
     # Update network weights
     optimizer.zero_grad()
