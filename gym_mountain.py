@@ -13,15 +13,18 @@ env = gym.make('MountainCar-v0')
 
 # env.seed(1)
 # torch.manual_seed(1)
+#GPU 
+
 
 # Hyperparameters
-learning_rate = 0.005
+learning_rate = 0.007
 gamma = 0.99
 
+# print(torch.cuda.is_available())
 
 def saveModel(model, fileName):
     fileName = str(fileName)
-    path = 'mountainNets/' + fileName + '.pth'
+    path = 'mountainNets/' + fileName + '_1' + '.pth'
     torch.save(model.state_dict(), path)
 
 class Policy(nn.Module):
@@ -42,7 +45,7 @@ class Policy(nn.Module):
 
     def reset(self):
         # Episode policy and reward history
-        self.episode_actions = torch.Tensor([])
+        self.episode_actions = torch.Tensor([]).to(dev,non_blocking=True)
         self.episode_rewards = []
 
     def forward(self, x):
@@ -62,10 +65,13 @@ class Policy(nn.Module):
 def predict(policy, state):
     # Select an action (0 or 1) by running policy model
     # and choosing based on the probabilities in state
-    state = torch.from_numpy(state).type(torch.FloatTensor)
+    state = torch.from_numpy(state).type(torch.FloatTensor).to(dev, non_blocking=True)
     action_probs = policy(state)
     distribution = Categorical(action_probs)
     action = distribution.sample()
+    # print(action)
+
+
 
     # Add log probability of our chosen action to our history
     policy.episode_actions = torch.cat([
@@ -86,11 +92,14 @@ def update_policy():
         rewards.insert(0, R)
 
     # Scale rewards
-    rewards = torch.FloatTensor(rewards)
+    rewards = torch.FloatTensor(rewards).to(dev, non_blocking=True)
     # print(rewards)
     rewards = (rewards - rewards.mean()) / (rewards.std() + np.finfo(np.float32).eps)
 
     # Calculate loss
+    # print(policy.episode_actions)
+    # print(rewards)
+    # print(torch.mul(policy.episode_actions, rewards))
     loss = (torch.sum(torch.mul(policy.episode_actions, rewards).mul(-1), -1))
     # print(loss)
 
@@ -123,11 +132,11 @@ def train(episodes):
         for time in range(2500):
             if episode % 200 == 0:
                 env.render()
-            action = predict(policy, state)
+            action = predict(policy, state).item()
 
 
             # Step through environment using chosen action
-            state, reward, done, _ = env.step(action.item())
+            state, reward, done, _ = env.step(action)
 
             if state[0] > maxp:
                 maxp = state[0]
@@ -161,10 +170,25 @@ def train(episodes):
                   .format(episode, mean_score, time))
             break
 
+if torch.cuda.is_available():  
+    dev = "cuda:0"
+    dtype = torch.cuda.FloatTensor
+    torch.backends.cudnn.fastest=True
+    # torch.backends.cudnn.benchmark=True
 
+    print(torch.cuda.get_device_name(0))
+else:  
+    dev = "cpu"
+    print('no cuda BOOda')
+dev = "cpu"
+# print(dev)  
+device = torch.device(dev)  
 
 if __name__ == "__main__":
-    policy = Policy()
+    # print(dev)  
+    device = torch.device(dev)  
+
+    policy = Policy().to(dev)
     optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
     train(episodes=20000)
 
