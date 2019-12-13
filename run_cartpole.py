@@ -22,7 +22,7 @@ policy.eval()
 
 
 def run(episodes):
-    rec = VideoRecorder(env, base_path=('cartVideo/' + fileName),
+    rec = VideoRecorder(env, base_path=('pics/cart' + fileName),
                         enabled=True)
     for episode in range(episodes):
 
@@ -42,6 +42,6 @@ def run(episodes):
 
 run(episodes=5)
 ff = ffmpy.FFmpeg(
-    inputs={("cartVideo/" + fileName + '.mp4'): None},
-    outputs={("cartGifs/" + fileName + ".gif"): None})
+    inputs={("pics/cart" + fileName + '.mp4'): None},
+    outputs={("pics/cart" + fileName + ".gif"): None})
 ff.run()
