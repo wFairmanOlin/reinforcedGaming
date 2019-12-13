@@ -13,7 +13,7 @@ env = gym.make('MountainCar-v0')
 
 # env.seed(1)
 # torch.manual_seed(1)
-#GPU 
+#GPU
 
 
 # Hyperparameters
@@ -149,7 +149,7 @@ def train(episodes):
             else:
                 # -((.5-abs(state[0] + .5))) + abs(state[1])
                 policy.episode_rewards.append(reward)
-                
+
 
         losses.append(update_policy())
 
@@ -170,25 +170,24 @@ def train(episodes):
                   .format(episode, mean_score, time))
             break
 
-if torch.cuda.is_available():  
+#check for compatible cuda gpu, run if possible
+if torch.cuda.is_available():
     dev = "cuda:0"
     dtype = torch.cuda.FloatTensor
     torch.backends.cudnn.fastest=True
     # torch.backends.cudnn.benchmark=True
 
     print(torch.cuda.get_device_name(0))
-else:  
+else:
     dev = "cpu"
     print('no cuda BOOda')
+#remove this if gpu is actually good
 dev = "cpu"
-# print(dev)  
-device = torch.device(dev)  
+device = torch.device(dev)
 
 if __name__ == "__main__":
-    # print(dev)  
-    device = torch.device(dev)  
+    device = torch.device(dev)
 
     policy = Policy().to(dev)
     optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
     train(episodes=20000)
-

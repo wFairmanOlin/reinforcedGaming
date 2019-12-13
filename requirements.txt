@@ -1,1 +1,4 @@
 gym
+matplotlib
+numpy
+ffmpy

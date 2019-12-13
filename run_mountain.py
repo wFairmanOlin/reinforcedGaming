@@ -5,10 +5,6 @@ import gym_mountain
 import ffmpy
 
 env = gym.make('MountainCar-v0')
-#MountainCar-v0
-#CartPole-v1
-# env.seed(1)
-# torch.manual_seed(1)
 
 # Hyperparameter
 
@@ -29,8 +25,9 @@ def run(episodes):
         # Reset environment and record the starting state
         state = env.reset()
         for time in range(1000):
-            # env.render()
-            rec.capture_frame()
+            env.render()
+            #Uncomment to record
+            # rec.capture_frame()
             action = gym_mountain.predict(policy, state)
 
             state, reward, done, _ = env.step(action.item())
@@ -40,11 +37,13 @@ def run(episodes):
                 break
         if (state[0] < .5):
             print('lost episode: ', episode)
-    rec.close()
+    #Uncomment to Record
+    # rec.close()
 
 
-run(episodes=1)
-ff = ffmpy.FFmpeg(
-    inputs={("pics/mountain" + fileName + '.mp4'): None},
-    outputs={("pics/mountain" + fileName + ".gif"): None})
-ff.run()
+run(episodes=5)
+#Uncomment to Record
+# ff = ffmpy.FFmpeg(
+#     inputs={("pics/mountain" + fileName + '.mp4'): None},
+#     outputs={("pics/mountain" + fileName + ".gif"): None})
+# ff.run()

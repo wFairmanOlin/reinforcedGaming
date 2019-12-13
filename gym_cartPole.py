@@ -1,24 +1,26 @@
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Categorical
+from graphviz import Digraph
+from torch.autograd import Variable
+from torchviz import make_dot
 
-env = gym.make('MountainCar-v0')
-env.goal_position = 0
-# print(env.goal_position)
-#MountainCar-v0
-#CartPole-v1
-env.seed(1)
-torch.manual_seed(1)
+env = gym.make('CartPole-v1')
 
 # Hyperparameters
-learning_rate = 0.01
-gamma = .99
+learning_rate = 0.005
+gamma = 0.99
+
+
+def saveModel(model, fileName):
+    fileName = str(fileName)
+    path = 'cartNets/' + fileName + '.pth'
+    torch.save(model.state_dict(), path)
 
 
 class Policy(nn.Module):
@@ -44,7 +46,7 @@ class Policy(nn.Module):
     def forward(self, x):
         model = torch.nn.Sequential(
             self.l1,
-            nn.Dropout(p=0.7),
+            nn.Dropout(p=0.8),
             nn.ReLU(),
             self.l2,
             nn.Softmax(dim=-1)
@@ -52,7 +54,7 @@ class Policy(nn.Module):
         return model(x)
 
 
-def predict(state):
+def predict(policy, state):
     # Select an action (0 or 1) by running policy model
     # and choosing based on the probabilities in state
     state = torch.from_numpy(state).type(torch.FloatTensor)
@@ -83,8 +85,10 @@ def update_policy():
     rewards = (rewards - rewards.mean()) / \
         (rewards.std() + np.finfo(np.float32).eps)
 
+
     # print(rewards)
     # Calculate loss
+
     loss = (torch.sum(torch.mul(policy.episode_actions, rewards).mul(-1), -1))
 
     # Update network weights
@@ -100,60 +104,56 @@ def update_policy():
 
 def train(episodes):
     scores = []
-    max_positions = []
     for episode in range(episodes):
         # Reset environment and record the starting state
         state = env.reset()
-        max_pos = state[0]
-        # env.gravity = 0
 
-        for time in range(250):
-            if episode % 1000 < 1:
+        if episode % 250 == 0:
+            saveModel(policy, episode)
+
+        for time in range(2001):
+            if episode % 250 < 1:
                 env.render()
-            action = predict(state)
+            action = predict(policy, state)
 
             # Uncomment to render the visual state in a window
             # env.render()
 
             # Step through environment using chosen action
             state, reward, done, _ = env.step(action.item())
-            reward = state[0] + 0.5
-            if state[0] >= env.goal_position:
-                reward += 50
-            # print(state[0])
-            if state[0] > max_pos:
-                max_pos = state[0]
-            # Save reward
-            # if state[0] >= env.goal_position:
-            #     reward = 50
-            policy.episode_rewards.append(reward)
 
-            if done or state[0] > env.goal_position:
-                # if state[0] > env.goal_position:
-                # print(state[0], env.goal_position)
+            # Save reward
+            policy.episode_rewards.append(reward)
+            if done:
                 break
 
         update_policy()
-        # print(policy.reward_history)
 
         # Calculate score to determine when the environment has been solved
         scores.append(time)
-        max_positions.append(max_pos)
         mean_score = np.mean(scores[-100:])
-        mean_pos = np.mean(max_positions[-100:])
 
         if episode % 100 == 0:
-            print('Episode {}\Average length (last 100 episodes): {:.2f}'.format(
+            print('Episode {}\tAverage length (last 100 episodes): {:.2f}'.format(
                 episode, mean_score))
-            print('Episode {}\ max pos (last 100 episodes): {:.2f}'.format(
-                episode, mean_pos))
 
-        # if mean_score > env.spec.reward_threshold:
-        #     print("Solved after {} episodes! Running average is now {}. Last episode ran to {} time steps."
-        #           .format(episode, mean_score, time))
-        #     break
+        if mean_score > env.spec.reward_threshold:
+            saveModel(policy, 'winning')
+            print("Solved after {} episodes! Running average is now {}. Last episode ran to {} time steps."
+                  .format(episode, mean_score, time))
+            break
 
+if __name__ == "__main__":
+    policy = Policy()
+    optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
+    train(episodes=2001)
 
-policy = Policy()
-optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
-train(episodes=10001)
+    #rolling average window
+    window = 50
+
+    rolling_mean = np.convolve(policy.reward_history, np.ones(window)/window, mode='valid')
+    plt.plot(rolling_mean)
+    plt.title('Average Episode Length')
+    plt.xlabel('Episode')
+    plt.ylabel('Episode Length')
+    plt.show()
