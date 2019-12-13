@@ -2,8 +2,14 @@
 # reinforcedGaming
 For our final project we wanted to focus on how reinforcement learning can be used to train game-solving neural nets. Throughout the course of project we utilized OpenAI's [Gym library](https://gym.openai.com/) to create game environments that were easily compatible with the algorithms we were implementing.
 
+## Running Our Code
+To interact with the code made for this assignment, make sure you have python 3 and run the following script to install all necessary dependencies.
+
+```
+pip install -r requirements.txt
+```
 ## Overview
-Reinforcement learning is a branch of machine learning that aims to train a model by taking action and observing how the environment reacts to any and all actions taken. A very common depiction of this feedback loop is shown below.
+Reinforcement learning (RL) is a branch of machine learning that aims to train a model by taking an action and observing how the environment reacts to the action taken. A very common depiction of this feedback loop is shown below.
 
 ![overview](/pics/basicRL.png)
 
@@ -21,9 +27,11 @@ In deep Q-Learning, the **Q function** is defined as a neural network with an in
 In order to create an effective neural network Q function we have to either maximize the reward or minimize the loss of our network. This is achieved by stepping the network towards higher rewards or lower losses. For our project, we focused on generating a loss function and performing gradient descent to minimize the amount of loss our Q function would return.
 
 ### Loss Function
-Our loss function is constantly computing the difference between our current q function and the ideal q function.
+The goal of the loss function is to accurately portray how far off our Q function is from acting ideal. For our project, we defined an ideal Q-function as one that would return the maximum reward immediately. While this is an unachievable goal, the model would train to get as close as possible to this goal.
+
+The loss function used in our project is simply defined as the negative of the dot product between our reward value and q function.
 ```
-loss.backwards()
+loss = -(rewardVector &#183 max(Q))
 ```
 
 ## Process
@@ -32,15 +40,18 @@ We started by finding an environment we could use to start trying out some reinf
 ## CartPole
 The first game we decided to try out is CartPole, This game involves a cart with a pole attached to the top, and the goal is to keep the pole balanced and upright as long as possible. The cart can either move left or right, and you lose if the pole tilts further than 15 degrees in either direction.
 
-The reward scheme the algorithm worked to maximize was very simple, with a small reward given each time step the algorithm lasted without losing. It started out with just random moves to the left and right, which was not a very effective method of balancing the pole.
+The reward scheme the algorithm worked to maximize was very simple, with a small reward given each time step the algorithm lasts without losing. It started out with just random moves to the left and right, which was not a very effective method of balancing the pole.
 
 ![Before training](/cartGifs/0.gif)
+Before training
 
-In the training, the specific information it used was the cart's position, its velocity, the pole angle, and the pole's velocity. After each try, it essentially evaluates how those factors affected its ability to continue growing the reward by staying up for longer.
+In the training, the specific information it used was the cart's position, its velocity, the pole angle, and the pole's velocity. After each try, it essentially evaluates how those factors effect its ability to continue growing the reward by staying up for longer.
+
+The neural net is comprised of 4 input nodes (one for each of the environment descriptors), a hidden layer of 128 nodes, and two output nodes. The two output nodes are the probabilities for each action to lead to a higher total reward. At each step of the game, the algorithm choses an action based on the probabilities the neural net gives out given the environment variables at that time.
+
+After each attempt, the neural net is updated based on the newest information it is given, and it adjusts the weights of the nodes in order to maximize its reward.
+
+
+
 
 ## MountainCar
-
-## Installing Dependencies
-Run this good'ol pip install script:
-
-`pip install -r requirements.txt`
