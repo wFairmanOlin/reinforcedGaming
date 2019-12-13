@@ -1,15 +1,9 @@
 import gym
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.distributions import Categorical
-from torch.autograd import Variable
-import time as t
 import gym_mountain
+import ffmpy
+
 env = gym.make('MountainCar-v0')
 #MountainCar-v0
 #CartPole-v1
@@ -17,7 +11,6 @@ env = gym.make('MountainCar-v0')
 # torch.manual_seed(1)
 
 # Hyperparameter
-
 
 fileName = str(input('episode (increments of 500): '))
 
@@ -29,12 +22,15 @@ policy.eval()
 
 
 def run(episodes):
+    rec = VideoRecorder(env, base_path=('pics/mountain' + fileName),
+                        enabled=True)
     for episode in range(episodes):
 
         # Reset environment and record the starting state
         state = env.reset()
         for time in range(1000):
-            env.render()
+            # env.render()
+            rec.capture_frame()
             action = gym_mountain.predict(policy, state)
 
             state, reward, done, _ = env.step(action.item())
@@ -44,7 +40,11 @@ def run(episodes):
                 break
         if (state[0] < .5):
             print('lost episode: ', episode)
+    rec.close()
 
 
-run(episodes=100)
-
+run(episodes=1)
+ff = ffmpy.FFmpeg(
+    inputs={("pics/mountain" + fileName + '.mp4'): None},
+    outputs={("pics/mountain" + fileName + ".gif"): None})
+ff.run()

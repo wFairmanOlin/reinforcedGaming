@@ -1,7 +1,6 @@
 import gym
 import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
 import torch
 import torch.nn as nn
 import torch.optim as optim
