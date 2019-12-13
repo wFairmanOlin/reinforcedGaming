@@ -3,6 +3,7 @@ import torch
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 import time as t
 import gym_medium
+import ffmpy
 env = gym.make('CartPole-v1')
 #MountainCar-v0
 #CartPole-v1
@@ -21,12 +22,11 @@ policy.eval()
 
 
 def run(episodes):
+    rec = VideoRecorder(env, base_path=('cartVideo/' + fileName),
+                        enabled=True)
     for episode in range(episodes):
-        enable = False
-        if episode == 0:
-            enable = True
-        rec = VideoRecorder(env, base_path=('cartVideo/' + fileName),
-                            enabled=enable)
+        # enable = False
+
         # Reset environment and record the starting state
         state = env.reset()
         for time in range(1000):
@@ -44,6 +44,12 @@ def run(episodes):
             #     break
         # if (state[0] < .5):
         #     print('lost episode: ', episode)
-        rec.close()
+        # if episode == 0:
+        #
+    rec.close()
 
-run(episodes=100)
+run(episodes=10)
+ff = ffmpy.FFmpeg(
+    inputs={("cartVideo/" + fileName + '.mp4'): None},
+    outputs={("cartGifs/" + fileName + ".gif"): None})
+ff.run()
