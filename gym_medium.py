@@ -1,11 +1,14 @@
 import gym
 import numpy as np
-from gym.wrappers.monitoring.video_recorder import VideoRecorder
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Categorical
+from graphviz import Digraph
+from torch.autograd import Variable
+from torchviz import make_dot
 
 env = gym.make('CartPole-v1')
 #MountainCar-v0
@@ -14,7 +17,7 @@ env = gym.make('CartPole-v1')
 # torch.manual_seed(1)
 
 # Hyperparameters
-learning_rate = 0.01
+learning_rate = 0.02
 gamma = 0.99
 
 
@@ -89,8 +92,8 @@ def update_policy():
 
     # print(rewards)
     # Calculate loss
-    loss = (torch.sum(torch.mul(policy.episode_actions, rewards).mul(-1), -1))
 
+    loss = (torch.sum(torch.mul(policy.episode_actions, rewards).mul(-1), -1))
 
     # Update network weights
     optimizer.zero_grad()
@@ -148,3 +151,15 @@ if __name__ == "__main__":
     policy = Policy()
     optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
     train(episodes=2001)
+
+    from torchviz import make_dot
+
+    window = 50
+
+    rolling_mean = np.convolve(policy.reward_history, np.ones(window)/window, mode='valid')
+    plt.plot(rolling_mean)
+    plt.title('Average Episode Length')
+    plt.xlabel('Episode')
+    plt.ylabel('Episode Length')
+    # plt.legend(['new','old'])
+    plt.show()
