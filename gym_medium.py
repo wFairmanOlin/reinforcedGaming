@@ -18,6 +18,13 @@ env = gym.make('CartPole-v1')
 learning_rate = 0.01
 gamma = 0.99
 
+
+def saveModel(model, fileName):
+    fileName = str(fileName)
+    path = 'cartNets/' + fileName + '.pth'
+    torch.save(model.state_dict(), path)
+
+
 class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()
@@ -41,7 +48,7 @@ class Policy(nn.Module):
     def forward(self, x):
         model = torch.nn.Sequential(
             self.l1,
-            nn.Dropout(p=0.5),
+            nn.Dropout(p=0.8),
             nn.ReLU(),
             self.l2,
             nn.Softmax(dim=-1)
@@ -49,7 +56,7 @@ class Policy(nn.Module):
         return model(x)
 
 
-def predict(state):
+def predict(policy, state):
     # Select an action (0 or 1) by running policy model
     # and choosing based on the probabilities in state
     state = torch.from_numpy(state).type(torch.FloatTensor)
@@ -81,7 +88,7 @@ def update_policy():
         (rewards.std() + np.finfo(np.float32).eps)
 
 
-    print(rewards)
+    # print(rewards)
     # Calculate loss
     loss = (torch.sum(torch.mul(policy.episode_actions, rewards).mul(-1), -1))
 
@@ -103,10 +110,13 @@ def train(episodes):
         # Reset environment and record the starting state
         state = env.reset()
 
-        for time in range(2000):
-            if episode % 50 < 2:
+        if episode % 250 == 0:
+            saveModel(policy, episode)
+
+        for time in range(2001):
+            if episode % 250 < 1:
                 env.render()
-            action = predict(state)
+            action = predict(policy, state)
 
             # Uncomment to render the visual state in a window
             # env.render()
@@ -130,12 +140,12 @@ def train(episodes):
                 episode, mean_score))
 
         if mean_score > env.spec.reward_threshold:
+            saveModel(policy, 'winning')
             print("Solved after {} episodes! Running average is now {}. Last episode ran to {} time steps."
                   .format(episode, mean_score, time))
             break
 
-
-policy = Policy()
-optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
-print(env.spec.reward_threshold)
-train(episodes=1000)
+if __name__ == "__main__":
+    policy = Policy()
+    optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
+    train(episodes=2001)

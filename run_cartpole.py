@@ -25,12 +25,11 @@ def run(episodes):
     rec = VideoRecorder(env, base_path=('cartVideo/' + fileName),
                         enabled=True)
     for episode in range(episodes):
-        # enable = False
 
         # Reset environment and record the starting state
         state = env.reset()
         for time in range(1000):
-            env.render()
+            # env.render()
             rec.capture_frame()
             action = gym_medium.predict(policy, state)
 
@@ -39,16 +38,9 @@ def run(episodes):
             if done:
                 print('lost in', time)
                 break
-            # if(state[0] > .5):
-            #     print('won in: ', time)
-            #     break
-        # if (state[0] < .5):
-        #     print('lost episode: ', episode)
-        # if episode == 0:
-        #
     rec.close()
 
-run(episodes=10)
+run(episodes=5)
 ff = ffmpy.FFmpeg(
     inputs={("cartVideo/" + fileName + '.mp4'): None},
     outputs={("cartGifs/" + fileName + ".gif"): None})
